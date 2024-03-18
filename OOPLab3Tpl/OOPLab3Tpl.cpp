@@ -1,73 +1,257 @@
 ﻿#include <iostream>
-#include <cmath>
-#include <string>
-using namespace std;
-const double M_PI = 3.14;
-class Cube 
-{
+#include <vector>
+#include <stdexcept>
+#include <cstdlib> // Для використання функції rand()
+
+class IntegerMultiset {
 private:
-    double side;
-    string color;
+    unsigned int* set;
+    unsigned int beg;
+    unsigned int end;
+    mutable int state; // Mutable дозволяє змінювати state у const методах
+
 public:
-    // конструктор за замовч
-    Cube() : side(0.0), color("white") {}
-    // конструктор з параметрами
-    Cube(double s, const string& c) : side(s), color(c) {}
-    // ф-ції обчисл площі поверхні, об’єму, довжини діагоналі та об’єму вписаної сфери
-    double surfaceArea() const {
-        return 6 * side * side;
-    }
-    double volume() const {
-        return side * side * side;
-    }
-    double diagonalLength() const {
-        return sqrt(3) * side;
-    }
-    double inscribedSphereVolume() const {
-        return (4.0 / 3.0) * M_PI * pow(side / 2, 3);
-    }
-    // ф-ції встановлення значення сторони та кольору
-    void setSide(double s) {
-        if (s > 0) {
-            side = s;
+    // Конструктори
+    IntegerMultiset() : beg(0), end(100), state(0) {
+        try {
+            set = new unsigned int[end - beg]();
+            for (unsigned int i = 0; i < end - beg; ++i) {
+                set[i] = rand() % (end - beg) + beg; // Генеруємо випадкове число від beg до end
+            }
         }
-        else {
-            cerr << "Помилка: сторона повинна бути більною ніж 0." << endl;
+        catch (std::bad_alloc& e) {
+            state = -1;
+            std::cerr << "Error: Memory allocation failed." << std::endl;
         }
     }
-    void setColor(const string& c) {
-        color = c;
+
+    IntegerMultiset(unsigned int end) : beg(0), end(end), state(0) {
+        try {
+            set = new unsigned int[end - beg]();
+            for (unsigned int i = 0; i < end - beg; ++i) {
+                set[i] = rand() % (end - beg) + beg; // Генеруємо випадкове число від beg до end
+            }
+        }
+        catch (std::bad_alloc& e) {
+            state = -1;
+            std::cerr << "Error: Memory allocation failed." << std::endl;
+        }
     }
-    // ф-ції що повертають значення полів
-    double getSide() const {
-        return side;
+
+    IntegerMultiset(unsigned int beg, unsigned int end) : beg(beg), end(end), state(0) {
+        try {
+            set = new unsigned int[end - beg]();
+            for (unsigned int i = 0; i < end - beg; ++i) {
+                set[i] = rand() % (end - beg) + beg; // Генеруємо випадкове число від beg до end
+            }
+        }
+        catch (std::bad_alloc& e) {
+            state = -1;
+            std::cerr << "Error: Memory allocation failed." << std::endl;
+        }
     }
-    string getColor() const {
-        return color;
+
+    IntegerMultiset(unsigned int beg, unsigned int end, unsigned int value) : beg(beg), end(end), state(0) {
+        try {
+            set = new unsigned int[end - beg];
+            for (unsigned int i = 0; i < end - beg; ++i) {
+                set[i] = value;
+            }
+        }
+        catch (std::bad_alloc& e) {
+            state = -1;
+            std::cerr << "Error: Memory allocation failed." << std::endl;
+        }
     }
-    // ф-ція друку
+
+    // Конструктор копій та операція присвоєння
+    IntegerMultiset(const IntegerMultiset& other) : beg(other.beg), end(other.end), state(other.state) {
+        try {
+            set = new unsigned int[end - beg];
+            for (unsigned int i = 0; i < end - beg; ++i) {
+                set[i] = other.set[i];
+            }
+        }
+        catch (std::bad_alloc& e) {
+            state = -1;
+            std::cerr << "Error: Memory allocation failed." << std::endl;
+        }
+    }
+
+    IntegerMultiset& operator=(const IntegerMultiset& other) {
+        if (this != &other) {
+            delete[] set;
+            beg = other.beg;
+            end = other.end;
+            state = other.state;
+            try {
+                set = new unsigned int[end - beg];
+                for (unsigned int i = 0; i < end - beg; ++i) {
+                    set[i] = other.set[i];
+                }
+            }
+            catch (std::bad_alloc& e) {
+                state = -1;
+                std::cerr << "Error: Memory allocation failed." << std::endl;
+            }
+        }
+        return *this;
+    }
+
+    // Деструктор
+    ~IntegerMultiset() {
+        delete[] set;
+    }
+
+    // Функції для установки та отримання елементу
+    void setValue(unsigned int index, unsigned int value) {
+        if (index >= end - beg) {
+            state = -2;
+            std::cerr << "Error: Index out of bounds." << std::endl;
+            return;
+        }
+        set[index] = value;
+    }
+
+    unsigned int getValue(unsigned int index) const {
+        if (index >= end - beg) {
+            state = -2;
+            std::cerr << "Error: Index out of bounds." << std::endl;
+            return 0;
+        }
+        return set[index];
+    }
+
+    // Функція, що повертає кількість повторень елементу множини
+    unsigned int getCount(unsigned int value) const {
+        unsigned int count = 0;
+        for (unsigned int i = 0; i < end - beg; ++i) {
+            if (set[i] == value) {
+                ++count;
+            }
+        }
+        return count;
+    }
+
+    // Функції для об'єднання, перетину та різниці
+    IntegerMultiset unionSet(const IntegerMultiset& other) const {
+        unsigned int newBeg = std::min(beg, other.beg);
+        unsigned int newEnd = std::max(end, other.end);
+        IntegerMultiset result(newBeg, newEnd);
+        for (unsigned int i = newBeg; i < newEnd; ++i) {
+            result.setValue(i - newBeg, std::max(getCount(i), other.getCount(i)));
+        }
+        return result;
+    }
+
+    IntegerMultiset intersectionSet(const IntegerMultiset& other) const {
+        unsigned int newBeg = std::max(beg, other.beg);
+        unsigned int newEnd = std::min(end, other.end);
+        IntegerMultiset result(newBeg, newEnd);
+        for (unsigned int i = newBeg; i < newEnd; ++i) {
+            result.setValue(i - newBeg, std::min(getCount(i), other.getCount(i)));
+        }
+        return result;
+    }
+
+    IntegerMultiset differenceSet(const IntegerMultiset& other) const {
+        unsigned int newBeg = std::min(beg, other.beg);
+        unsigned int newEnd = std::max(end, other.end);
+        IntegerMultiset result(newBeg, newEnd);
+        for (unsigned int i = newBeg; i < newEnd; ++i) {
+            result.setValue(i - newBeg, getCount(i) - other.getCount(i));
+        }
+        return result;
+    }
+
+    // Функції порівняння
+    bool operator==(const IntegerMultiset& other) const {
+        if (beg != other.beg || end != other.end) {
+            return false;
+        }
+        for (unsigned int i = 0; i < end - beg; ++i) {
+            if (set[i] != other.set[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool operator!=(const IntegerMultiset& other) const {
+        return !(*this == other);
+    }
+
+    bool operator<(const IntegerMultiset& other) const {
+        if (beg != other.beg || end != other.end) {
+            return false;
+        }
+        for (unsigned int i = 0; i < end - beg; ++i) {
+            if (set[i] >= other.set[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool operator<=(const IntegerMultiset& other) const {
+        return *this == other || *this < other;
+    }
+
+    bool operator>(const IntegerMultiset& other) const {
+        return !(*this <= other);
+    }
+
+    bool operator>=(const IntegerMultiset& other) const {
+        return !(*this < other);
+    }
+
+    // Функція друку
     void print() const {
-        cout << "Сторона: " << side << endl;
-        cout << "Колiр: " << color << endl;
-        cout << "Площа: " << surfaceArea() << endl;
-        cout << "Об*єм: " << volume() << endl;
-        cout << "Довжина дiагоналi: " << diagonalLength() << endl;
-        cout << "Об*єм вписаної сфери: " << inscribedSphereVolume() << endl;
+        std::cout << "Multiset Information:" << std::endl;
+        std::cout << "Range: [" << beg << ", " << end << "]" << std::endl;
+        std::cout << "Elements:" << std::endl;
+        for (unsigned int i = 0; i < end - beg; ++i) {
+            std::cout << beg + i << ": " << set[i] << std::endl;
+        }
+    }
+
+    // Функція для отримання стану
+    int getState() const {
+        return state;
+    }
+
+    // Функція для підрахунку числа об'єктів даного типу
+    static int getCountOfObjects() {
+        // Тут можна використати статичну змінну для підрахунку об'єктів
+        // Наприклад:
+        // static int count = 0;
+        // return count;
     }
 };
+
 int main() {
-    setlocale(LC_CTYPE, "Ukr");
-    // тест класу 
-    cout << "Тест 1(Конструктор зв замовчуванням): " << endl;
-    Cube cube1; // використання конструктора за замовчуванням
-    cube1.print();
-    cout << "Тест 2(Конструктор з параметром 1): " << endl;
-    Cube cube2(3.0, "blue"); // використання конструктора з параметрами
-    cube2.print();
-    // зміна знач полів та тестування функцій
-    cout << "Тест 3(Конструктор з параметром 2): " << endl;
-    cube2.setSide(5.0);
-    cube2.setColor("green");
-    cube2.print();
+    // Тестування класу "Множина з повторенням діапазону цілих чисел"
+    IntegerMultiset set1; // використання конструктора без параметрів
+    set1.print();
+
+    IntegerMultiset set2(50); // використання конструктора з одним параметром
+    set2.print();
+
+    IntegerMultiset set3(10, 30); // використання конструктора з двома параметрами
+    set3.print();
+
+    IntegerMultiset set4(5, 15, 3); // використання конструктора з трьома параметрами
+    set4.print();
+
+    // Тестування функцій об'єднання, перетину та різниці
+    IntegerMultiset unionSet = set3.unionSet(set4);
+    unionSet.print();
+
+    IntegerMultiset intersectionSet = set3.intersectionSet(set4);
+    intersectionSet.print();
+
+    IntegerMultiset differenceSet = set3.differenceSet(set4);
+    differenceSet.print();
+
     return 0;
 }
